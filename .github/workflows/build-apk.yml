@@ -37,11 +37,19 @@ jobs:
             cp android/app/src/main/AndroidManifest.xml /tmp/backup/AndroidManifest.xml
           fi
 
+          # Purane mismatched files hata kar Flutter ko fresh aur compatible files banane dein
+          rm -rf android
+
           flutter create . --project-name apna_shehr_app --platforms android --org com.apnashehronline
 
           if [ -f "/tmp/backup/AndroidManifest.xml" ]; then
             cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           fi
+
+          # Camera scanner ke liye minSdk 21 set karein
+          sed -i 's/minSdk = .*/minSdk = 21/g' android/app/build.gradle || true
+          sed -i 's/minSdkVersion .*/minSdkVersion 21/g' android/app/build.gradle || true
+          sed -i 's/signingConfig = signingConfigs.release/signingConfig = signingConfigs.debug/g' android/app/build.gradle || true
 
       - name: Get dependencies
         run: flutter pub get
