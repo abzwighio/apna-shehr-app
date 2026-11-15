@@ -28,9 +28,20 @@ jobs:
 
       - name: Configure Android Project
         run: |
-          cp android/app/src/main/AndroidManifest.xml /tmp/AndroidManifest.xml || true
-          flutter create . --platforms android --org com.apnashehronline
-          cp /tmp/AndroidManifest.xml android/app/src/main/AndroidManifest.xml || true
+          if [ -d "apna_shehr_app" ] && [ -f "apna_shehr_app/pubspec.yaml" ]; then
+            cp -r apna_shehr_app/* . || true
+          fi
+
+          mkdir -p /tmp/backup
+          if [ -f "android/app/src/main/AndroidManifest.xml" ]; then
+            cp android/app/src/main/AndroidManifest.xml /tmp/backup/AndroidManifest.xml
+          fi
+
+          flutter create . --project-name apna_shehr_app --platforms android --org com.apnashehronline
+
+          if [ -f "/tmp/backup/AndroidManifest.xml" ]; then
+            cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          fi
 
       - name: Get dependencies
         run: flutter pub get
