@@ -37,7 +37,6 @@ jobs:
             cp android/app/src/main/AndroidManifest.xml /tmp/backup/AndroidManifest.xml
           fi
 
-          # Purane mismatched files hata kar Flutter ko fresh aur compatible files banane dein
           rm -rf android
 
           flutter create . --project-name apna_shehr_app --platforms android --org com.apnashehronline
@@ -46,9 +45,35 @@ jobs:
             cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           fi
 
-          # Camera scanner ke liye minSdk 21 set karein
+          # Fix app_links & compileSdkVersion issue
+          cat << 'EOF' >> android/build.gradle
+
+allprojects {
+    ext.compileSdkVersion = 34
+    ext.targetSdkVersion = 34
+    ext.minSdkVersion = 21
+}
+
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            project.android {
+                compileSdkVersion 34
+            }
+        }
+    }
+}
+EOF
+
+          # Configure app build.gradle
           sed -i 's/minSdk = .*/minSdk = 21/g' android/app/build.gradle || true
           sed -i 's/minSdkVersion .*/minSdkVersion 21/g' android/app/build.gradle || true
+          sed -i 's/compileSdk = .*/compileSdk = 34/g' android/app/build.gradle || true
+          sed -i 's/compileSdkVersion .*/compileSdkVersion 34/g' android/app/build.gradle || true
           sed -i 's/signingConfig = signingConfigs.release/signingConfig = signingConfigs.debug/g' android/app/build.gradle || true
 
       - name: Get dependencies
