@@ -45,22 +45,28 @@ jobs:
             cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           fi
 
-          # Safe lazy injection for all plugins including app_links
-          echo "allprojects { ext.compileSdkVersion = 34; ext.minSdkVersion = 21 }" >> android/build.gradle
-          echo "subprojects { pluginManager.withPlugin('com.android.library') { android { compileSdk = 34; compileSdkVersion = 34; defaultConfig { minSdk = 21 } } } }" >> android/build.gradle
-
-          # Configure app build.gradle
-          find android -name "build.gradle*" -exec sed -i 's/compileSdk = .*/compileSdk = 34/g' {} + || true
-          find android -name "build.gradle*" -exec sed -i 's/compileSdkVersion .*/compileSdkVersion 34/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/minSdk = .*/minSdk = 21/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/minSdkVersion .*/minSdkVersion 21/g' {} + || true
-          find android -name "build.gradle*" -exec sed -i 's/targetSdk = .*/targetSdk = 34/g' {} + || true
-          find android -name "build.gradle*" -exec sed -i 's/targetSdkVersion .*/targetSdkVersion 34/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/signingConfig = signingConfigs.release/signingConfig = signingConfigs.debug/g' {} + || true
 
-      - name: Get and update dependencies
+      - name: Optimize Supabase dependency
         run: |
-          flutter pub add app_links:^6.4.2 || flutter pub add app_links || true
+          python3 -c "
+          import os
+
+          if os.path.exists('pubspec.yaml'):
+              with open('pubspec.yaml', 'r') as f: text = f.read()
+              text = text.replace('supabase_flutter: ^2.8.0', 'supabase: ^2.6.0')
+              with open('pubspec.yaml', 'w') as f: f.write(text)
+
+          srv_path = 'lib/core/services/supabase_service.dart'
+          if os.path.exists(srv_path):
+              with open(srv_path, 'r') as f: text = f.read()
+              text = text.replace('package:supabase_flutter/supabase_flutter.dart', 'package:supabase/supabase.dart')
+              text = text.replace('SupabaseClient? get client => _initialized ? Supabase.instance.client : null;', 'SupabaseClient? _client;\n  SupabaseClient? get client => _client;')
+              text = text.replace('await Supabase.initialize(\n        url: SupabaseConfig.url,\n        anonKey: SupabaseConfig.anonKey,\n      );', '_client = SupabaseClient(SupabaseConfig.url, SupabaseConfig.anonKey);')
+              with open(srv_path, 'w') as f: f.write(text)
+          "
           flutter pub get
 
       - name: Build Release APK
