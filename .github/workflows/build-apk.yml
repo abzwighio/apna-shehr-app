@@ -45,18 +45,19 @@ jobs:
             cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           fi
 
-          echo "allprojects { ext.compileSdkVersion = 34; ext.targetSdkVersion = 34; ext.minSdkVersion = 21 }" >> android/build.gradle
-          echo "subprojects { project.evaluationDependsOn(':app') }" >> android/build.gradle
-          echo "subprojects { afterEvaluate { project -> if (project.hasProperty('android')) { project.android { compileSdkVersion 34 } } } }" >> android/build.gradle
+          # Replace compileSdk and minSdk in all gradle files (.gradle and .gradle.kts)
+          find android -name "build.gradle*" -exec sed -i 's/compileSdk = .*/compileSdk = 34/g' {} + || true
+          find android -name "build.gradle*" -exec sed -i 's/compileSdkVersion .*/compileSdkVersion 34/g' {} + || true
+          find android -name "build.gradle*" -exec sed -i 's/minSdk = .*/minSdk = 21/g' {} + || true
+          find android -name "build.gradle*" -exec sed -i 's/minSdkVersion .*/minSdkVersion 21/g' {} + || true
+          find android -name "build.gradle*" -exec sed -i 's/targetSdk = .*/targetSdk = 34/g' {} + || true
+          find android -name "build.gradle*" -exec sed -i 's/targetSdkVersion .*/targetSdkVersion 34/g' {} + || true
+          find android -name "build.gradle*" -exec sed -i 's/signingConfig = signingConfigs.release/signingConfig = signingConfigs.debug/g' {} + || true
 
-          sed -i 's/minSdk = .*/minSdk = 21/g' android/app/build.gradle || true
-          sed -i 's/minSdkVersion .*/minSdkVersion 21/g' android/app/build.gradle || true
-          sed -i 's/compileSdk = .*/compileSdk = 34/g' android/app/build.gradle || true
-          sed -i 's/compileSdkVersion .*/compileSdkVersion 34/g' android/app/build.gradle || true
-          sed -i 's/signingConfig = signingConfigs.release/signingConfig = signingConfigs.debug/g' android/app/build.gradle || true
-
-      - name: Get dependencies
-        run: flutter pub get
+      - name: Get and update dependencies
+        run: |
+          flutter pub get
+          flutter pub upgrade app_links || true
 
       - name: Build Release APK
         run: flutter build apk --release --no-tree-shake-icons
