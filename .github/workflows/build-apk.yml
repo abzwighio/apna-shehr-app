@@ -45,21 +45,23 @@ jobs:
             cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           fi
 
-          # Set SDK 34 and minSdk 21 in build.gradle
-          find android -name "build.gradle*" -exec sed -i 's/compileSdk = .*/compileSdk = 34\n        compileSdkVersion 34/g' {} + || true
+          # Safe lazy injection for all plugins including app_links
+          echo "allprojects { ext.compileSdkVersion = 34; ext.minSdkVersion = 21 }" >> android/build.gradle
+          echo "subprojects { pluginManager.withPlugin('com.android.library') { android { compileSdk = 34; compileSdkVersion = 34; defaultConfig { minSdk = 21 } } } }" >> android/build.gradle
+
+          # Configure app build.gradle
+          find android -name "build.gradle*" -exec sed -i 's/compileSdk = .*/compileSdk = 34/g' {} + || true
+          find android -name "build.gradle*" -exec sed -i 's/compileSdkVersion .*/compileSdkVersion 34/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/minSdk = .*/minSdk = 21/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/minSdkVersion .*/minSdkVersion 21/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/targetSdk = .*/targetSdk = 34/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/targetSdkVersion .*/targetSdkVersion 34/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/signingConfig = signingConfigs.release/signingConfig = signingConfigs.debug/g' {} + || true
 
-      - name: Get and patch dependencies
+      - name: Get and update dependencies
         run: |
-          flutter pub add app_links || true
+          flutter pub add app_links:^6.4.2 || flutter pub add app_links || true
           flutter pub get
-          # app_links ko direct patch karein taake compileSdkVersion ka error na aaye
-          find ~/.pub-cache -name "build.gradle" -path "*app_links*" -exec sed -i 's/getCompileSdkVersion()/34/g' {} + || true
-          find ~/.pub-cache -name "build.gradle" -path "*app_links*" -exec sed -i 's/compileSdkVersion .*/compileSdkVersion 34/g' {} + || true
 
       - name: Build Release APK
         run: flutter build apk --release --no-tree-shake-icons
