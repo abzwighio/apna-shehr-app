@@ -45,19 +45,21 @@ jobs:
             cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           fi
 
-          # Replace compileSdk and minSdk in all gradle files (.gradle and .gradle.kts)
-          find android -name "build.gradle*" -exec sed -i 's/compileSdk = .*/compileSdk = 34/g' {} + || true
-          find android -name "build.gradle*" -exec sed -i 's/compileSdkVersion .*/compileSdkVersion 34/g' {} + || true
+          # Set SDK 34 and minSdk 21 in build.gradle
+          find android -name "build.gradle*" -exec sed -i 's/compileSdk = .*/compileSdk = 34\n        compileSdkVersion 34/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/minSdk = .*/minSdk = 21/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/minSdkVersion .*/minSdkVersion 21/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/targetSdk = .*/targetSdk = 34/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/targetSdkVersion .*/targetSdkVersion 34/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/signingConfig = signingConfigs.release/signingConfig = signingConfigs.debug/g' {} + || true
 
-      - name: Get and update dependencies
+      - name: Get and patch dependencies
         run: |
+          flutter pub add app_links || true
           flutter pub get
-          flutter pub upgrade app_links || true
+          # app_links ko direct patch karein taake compileSdkVersion ka error na aaye
+          find ~/.pub-cache -name "build.gradle" -path "*app_links*" -exec sed -i 's/getCompileSdkVersion()/34/g' {} + || true
+          find ~/.pub-cache -name "build.gradle" -path "*app_links*" -exec sed -i 's/compileSdkVersion .*/compileSdkVersion 34/g' {} + || true
 
       - name: Build Release APK
         run: flutter build apk --release --no-tree-shake-icons
